@@ -1,0 +1,147 @@
+---
+title: "Analysing Personal Movement With A Monitoring Device"
+author: "Albert Trias"
+date: "2/20/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+```
+## Introduction
+
+This is the first assignment of the *Coursera* course **Reproducible Research**. The objectives of this work are:  
+- Analyse a dataset with data about personal movement.  
+- Learn about **R markdown** and reproducible research.  
+- Having a personal template for using it in the future.  
+
+## Methodology
+
+As one of the main objectives of this work is to learn how to make reproducible
+research, and also we would like to have a template for the future, this document include the following steps:  
+
+1. Define the question: As more specific better
+2. Define the ideal data set
+3. Determine what data you can access
+4. Obtain the data
+5. Clean the data
+6. Exploratory data analysis
+7. Look at summaries of the data
+8. check missing data
+9. exploratory plots
+10. exploratory analysis (p.e clustering)
+11. Statistical predition/modeling
+12. Interpret results
+13. challenge results
+14. Synthesize/write up results
+15. Create reproducible code
+
+## Define the question
+
+The question that we would like to address here is if we can deduce some of the activities of an individual over a period of time using the measures of a device like this. Some of the things that we might try to find are the following:  
+- Can we deduce at which schedule the device user is sleeping?
+- Can we know when the user was walking or running?
+- Can we know if the user has a different routine on weekends?
+
+## Define the ideal data set
+
+We can guess that an ideal dataset for this research would have the data of one year, with the point of view that the user also can take holidays if he is an employed/student and if the current dataset includes a period of time that is to representative in the data it will impact in our data.
+
+About the fields in a dataset the only thing that we need is the number of steps for each interval time. To simplify how the study is done it will by much simpler if these intervals are constant. 
+This interval time can be obtained from two "different variables", with the date and the *interval*/*timestamp*
+
+
+## Determine what data you can access
+
+The data that we used for this analysis has been obtained from an [url](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip). 
+
+Although that it may exist more complete datasets, for this task it is required to use this one, and futhermore using another one would make harder some of the objectives of this work.
+
+## Obtain the data
+
+Before downloading the dataset, we will create the folder structures for the data.
+```{r}
+if(!file.exists("./data")) {dir.create(file.path("./", "data"), showWarnings = FALSE)}
+if(!file.exists("./data/rawdata")) {dir.create(file.path("./data", "rawdata"),showWarnings = FALSE)}
+if(!file.exists("./data/tidydata")) {dir.create(file.path("./data", "tidydata"),showWarnings = FALSE)}
+```
+
+Now that we have created the folder structure we proceed downloading the zip file from the provided url, and extracting it in the folder data/rawdata.
+```{r}
+datasetUrl<-"https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+zipPath<-"./data/dataactivity.zip"
+download.file(datasetUrl,zipPath)
+unzip(zipPath,exdir="./data/rawdata")
+```
+
+Now we load the dataset, and obtain a few things from it
+
+```{r}
+dataraw<-read.csv("./data/rawdata/activity.csv")
+head(dataraw,n=5)
+tail(dataraw,n=5)
+str(dataraw)
+summary(dataraw)
+
+table(dataraw$steps,useNA="ifany")
+table(dataraw$date,useNA="ifany")
+table(dataraw$interval,useNA="ifany")
+
+table(dataraw[is.na(dataraw$steps),2])
+#we will not create factor variables are all have sense as numeric/data
+# data$varname<-factor(data$varname)
+```
+As we can see there are three dimensions:  
+- steps  
+- date  
+- interval  
+
+
+
+###Code to describe and show a strategy for imputing missing data
+
+We will remove the NAs from *steps*
+
+```{r}
+
+data<-dataraw[!is.na(dataraw$steps),]
+data$date<-as.Date(data$date)
+summary(data)
+
+```
+
+
+###Histogram of the total number of steps taken each day  
+```{r}
+hist(tapply(dataraw$steps,dataraw$date,sum))
+```
+###Mean and median number of steps taken each day  
+mean  
+```{r}
+mean(tapply(data$steps,data$date,sum))
+```
+median
+```{r}
+median(tapply(data$steps,data$date,sum))
+```
+
+
+###Histogram of the total number of steps taken each day after missing values are imputed  
+
+```{r}
+hist(tapply(data$steps,data$date,sum))
+```
+
+
+```{r}
+library(lubridate)
+data$isWeekend<-lubridate::wday(data$date) %in% c(1, 7)
+table(data$isWeekend)
+weekendData<-dplyr::filter(data,isWeekend==TRUE)
+plot(weekendData$interval,weekendData$steps)
+weekdayData<-dplyr::filter(data,isWeekend==FALSE)
+plot(weekdayData$interval,weekdayData$steps)
+```
+
